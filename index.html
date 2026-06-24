@@ -3,72 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="A lightweight collection of browser games."
-    />
-    <title>Web Games</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=DM+Mono&family=Space+Grotesk:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <meta name="description" content="A two-player Connect Four game." />
+    <title>Connect Four Rooms</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main>
-      <nav class="nav" aria-label="Main navigation">
-        <a class="brand" href="/">WEB<span>GAMES</span></a>
-        <a class="nav-link" href="#games">Browse games <span aria-hidden="true">↘</span></a>
-      </nav>
-
-      <section class="hero" aria-labelledby="page-title">
-        <p class="eyebrow">Play in your browser</p>
-        <h1 id="page-title">Tiny games.<br /><em>Big breaks.</em></h1>
-        <p class="intro">
-          A growing collection of quick, delightful games made for a few spare minutes.
-          No downloads, no accounts.
-        </p>
-        <a class="button" href="#games">Choose a game <span aria-hidden="true">→</span></a>
+    <main class="app-shell">
+      <a class="brand" href="/">CONNECT <span>FOUR</span></a>
+      <section class="lobby" id="lobby" aria-labelledby="title">
+        <p class="eyebrow">Two players · one room</p>
+        <h1 id="title">Play together,<br /><em>anywhere.</em></h1>
+        <p>Create a private room and send its six-letter code to a friend.</p>
+        <button class="button" id="create-room">Create a room <span>→</span></button>
+        <form id="join-form">
+          <label for="room-code">Have a code?</label>
+          <div class="join-row"><input id="room-code" maxlength="6" placeholder="ABC123" autocomplete="off" /><button class="button secondary">Join</button></div>
+        </form>
+        <p class="message" id="message" role="status"></p>
       </section>
 
-      <section class="games" id="games" aria-labelledby="games-title">
-        <div class="section-heading">
-          <p class="eyebrow">Currently playing</p>
-          <h2 id="games-title">Pick your pause</h2>
-        </div>
-        <div class="game-grid">
-          <article class="game-card coral">
-            <span class="number">01</span>
-            <div class="game-art dots" aria-hidden="true">● ●<br />● ●</div>
-            <div>
-              <h3>Memory Match</h3>
-              <p>Find every pair before the clock runs out.</p>
-            </div>
-            <span class="coming-soon">Coming soon</span>
-          </article>
-          <article class="game-card lime">
-            <span class="number">02</span>
-            <div class="game-art maze" aria-hidden="true">↗</div>
-            <div>
-              <h3>Maze Runner</h3>
-              <p>Race through a fresh maze every time.</p>
-            </div>
-            <span class="coming-soon">Coming soon</span>
-          </article>
-          <article class="game-card lilac">
-            <span class="number">03</span>
-            <div class="game-art orbit" aria-hidden="true">◉</div>
-            <div>
-              <h3>Orbit</h3>
-              <p>Keep the planets in balance for as long as you can.</p>
-            </div>
-            <span class="coming-soon">Coming soon</span>
-          </article>
-        </div>
+      <section class="game hidden" id="game" aria-live="polite">
+        <div class="game-top"><button id="leave-room" class="text-button">← Leave room</button><span id="room-label"></span></div>
+        <div class="players"><span id="red-player">● Red</span><strong id="game-status">Loading room…</strong><span id="yellow-player">● Yellow</span></div>
+        <div class="board" id="board" aria-label="Connect Four board"></div>
+        <div class="game-actions"><button class="button secondary" id="copy-link">Copy invite link</button><button class="text-button" id="new-round">New round</button></div>
       </section>
     </main>
-    <footer>Made for the open web <span aria-hidden="true">✦</span></footer>
+    <script type="module" src="app.js"></script>
   </body>
 </html>
