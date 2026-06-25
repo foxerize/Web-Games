@@ -9,8 +9,14 @@ const game = document.querySelector("#game");
 const message = document.querySelector("#message");
 const hostControls = document.querySelector("#host-controls");
 const kickPlayerButton = document.querySelector("#kick-player");
+const chatMessages = document.querySelector("#chat-messages");
+const chatForm = document.querySelector("#chat-form");
+const chatInput = document.querySelector("#chat-input");
 let uid, roomId, room, unsubscribe;
 const ROOM_TTL_MS = 2 * 60 * 60 * 1000;
+const MAX_CHAT_MESSAGES = 40;
+const MAX_LOCAL_CHAT_MESSAGES = 250;
+const MAX_CHAT_CHARS = 255;
 const expiresAt = () => Date.now() + ROOM_TTL_MS;
 const isExpired = roomData => roomData?.expiresAt && roomData.expiresAt <= Date.now();
 const emptyBoard = () => Array(6).fill(null).map(() => Array(7).fill(null));
@@ -18,6 +24,18 @@ const normalizeBoard = board => Array.from({ length: 6 }, (_, r) => Array.from({
 const code = () => Array.from(crypto.getRandomValues(new Uint32Array(6)), n => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[n % 32]).join("");
 const playerColor = players => players?.red === uid ? "red" : players?.yellow === uid ? "yellow" : null;
 const isHost = roomData => roomData?.host === uid || (!roomData?.host && roomData?.players?.red === uid);
+const chatKey = id => `connect-four-chat:${id}`;
+const chatId = item => item.id || `${item.createdAt || 0}:${item.uid || ""}:${item.text || ""}`;
+const readLocalChat = id => {
+  try { return JSON.parse(localStorage.getItem(chatKey(id))) || []; }
+  catch { return []; }
+};
+const writeLocalChat = (id, messages) => localStorage.setItem(chatKey(id), JSON.stringify(messages.slice(-MAX_LOCAL_CHAT_MESSAGES)));
+const mergeChat = (localMessages, remoteMessages) => {
+  const merged = new Map();
+  [...localMessages, ...remoteMessages].forEach(item => merged.set(chatId(item), item));
+  return [...merged.values()].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).slice(-MAX_LOCAL_CHAT_MESSAGES);
+};
 
 try {
   if (Object.values(firebaseConfig).includes("REPLACE_ME")) throw new Error("Finish Firebase setup: add the Realtime Database URL to firebase-config.js.");
@@ -65,7 +83,36 @@ try {
     hostControls.classList.toggle("hidden", !host);
     kickPlayerButton.disabled = !room.players?.yellow;
     boardEl.replaceChildren(...currentBoard.flatMap((row, r) => row.map((value, c) => { const b = document.createElement("button"); b.className = `cell ${value || ""}`; b.disabled = room.status !== "playing" || room.turn !== mine || value !== null; b.setAttribute("aria-label", `Column ${c + 1}, row ${r + 1}`); b.onclick = () => move(c); return b; })));
+    renderChat(mine);
   }
+  function renderChat(mine) {
+    const remoteMessages = Array.isArray(room.chat) ? room.chat : [];
+    const messages = mergeChat(readLocalChat(roomId), remoteMessages);
+    writeLocalChat(roomId, messages);
+    chatMessages.replaceChildren(...messages.map(item => {
+      const row = document.createElement("p");
+      row.className = `chat-message ${item.uid === uid ? "mine" : ""}`;
+      const author = document.createElement("span");
+      author.className = `chat-author ${item.color || ""}`;
+      author.textContent = item.uid === uid ? "You" : (item.color === "red" ? "Red" : "Yellow");
+      const text = document.createElement("span");
+      text.textContent = item.text;
+      row.append(author, text);
+      return row;
+    }));
+    chatInput.disabled = !mine;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+  const sendChat = text => roomId && runTransaction(ref(db, `rooms/${roomId}`), current => {
+    if (!current || isExpired(current)) return current;
+    const color = playerColor(current.players); if (!color) return current;
+    const cleanText = text.replace(/[^\x20-\x7E]/g, "").trim().slice(0, MAX_CHAT_CHARS); if (!cleanText) return current;
+    const chat = Array.isArray(current.chat) ? current.chat : [];
+    const message = { id: crypto.randomUUID(), uid, color, text: cleanText, createdAt: Date.now() };
+    current.chat = [...chat, message].slice(-MAX_CHAT_MESSAGES);
+    current.expiresAt = expiresAt();
+    return current;
+  });
   const hostTransaction = action => roomId && runTransaction(ref(db, `rooms/${roomId}`), current => {
     if (!current || isExpired(current) || !isHost(current)) return current;
     if (!current.host && current.players?.red) current.host = current.players.red;
@@ -76,6 +123,7 @@ try {
   document.querySelector("#join-form").onsubmit = e => { e.preventDefault(); const c = document.querySelector("#room-code").value.replace(/[^A-Z0-9]/gi, ""); if (c.length !== 6) return message.textContent = "Enter the six-letter room code."; openRoom(c, false).catch(err => message.textContent = err.message); };
   document.querySelector("#leave-room").onclick = leave;
   document.querySelector("#copy-link").onclick = async () => { await navigator.clipboard.writeText(location.href); document.querySelector("#copy-link").textContent = "Invite link copied"; };
+  chatForm.onsubmit = e => { e.preventDefault(); const text = chatInput.value; chatInput.value = ""; sendChat(text); };
   document.querySelector("#new-round").onclick = () => hostTransaction(current => ({ ...current, board: emptyBoard(), turn: "red", status: current.players?.yellow ? "playing" : "waiting", winner: null, expiresAt: expiresAt() }));
   document.querySelector("#kick-player").onclick = () => hostTransaction(current => ({ ...current, board: emptyBoard(), turn: "red", status: "waiting", winner: null, kickedYellow: current.players?.yellow || null, players: { red: current.players.red }, expiresAt: expiresAt() }));
   document.querySelector("#disband-room").onclick = () => { if (roomId && confirm("Disband this room for everyone?")) set(ref(db, `rooms/${roomId}`), null); };

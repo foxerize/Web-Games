@@ -24,14 +24,26 @@
 
       <section class="game hidden" id="game" aria-live="polite">
         <div class="game-top"><button id="leave-room" class="text-button">← Leave room</button><span id="room-label"></span></div>
-        <div class="players"><span id="red-player">● Red</span><strong id="game-status">Loading room…</strong><span id="yellow-player">● Yellow</span></div>
-        <div class="board" id="board" aria-label="Connect Four board"></div>
-        <div class="game-actions">
-          <button class="button secondary" id="copy-link">Copy invite link</button>
-          <div class="host-controls hidden" id="host-controls">
-            <button class="text-button" id="new-round">New round</button>
-            <button class="text-button" id="kick-player">Kick player</button>
-            <button class="text-button danger" id="disband-room">Disband room</button>
+        <div class="game-layout">
+          <section class="chat" aria-labelledby="chat-title">
+            <h2 id="chat-title">Room chat</h2>
+            <div class="chat-messages" id="chat-messages" aria-live="polite"></div>
+            <form class="chat-form" id="chat-form">
+              <input id="chat-input" maxlength="255" placeholder="Type a message…" autocomplete="off" />
+              <button class="button secondary">Send</button>
+            </form>
+          </section>
+          <div class="play-area">
+            <div class="players"><span id="red-player">● Red</span><strong id="game-status">Loading room…</strong><span id="yellow-player">● Yellow</span></div>
+            <div class="board" id="board" aria-label="Connect Four board"></div>
+            <div class="game-actions">
+              <button class="button secondary" id="copy-link">Copy invite link</button>
+              <div class="host-controls hidden" id="host-controls">
+                <button class="text-button" id="new-round">New round</button>
+                <button class="text-button" id="kick-player">Kick player</button>
+                <button class="text-button danger" id="disband-room">Disband room</button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
