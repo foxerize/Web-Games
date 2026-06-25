@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A two-player Connect Four game." />
+    <title>Connect Four · Web Games</title>
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body class="game-page">
+    <main class="app-shell">
+      <a class="brand site-brand" href="../../">WEB <span>GAMES</span></a>
+      <section class="lobby" id="lobby" aria-labelledby="title">
+        <p class="eyebrow">Connect Four · multiplayer</p>
+        <h1 id="title">Drop discs,<br /><em>connect four.</em></h1>
+        <p>Create a private room and send its six-letter code to a friend.</p>
+        <div class="game-grid single-game-grid">
+          <article class="game-card featured">
+            <p class="card-kicker">Host a room</p>
+            <h2>New game</h2>
+            <p>Start as P1, then invite P2 with the room code or invite link.</p>
+            <button class="button" id="create-room">Create room <span>→</span></button>
+          </article>
+          <article class="game-card">
+            <p class="card-kicker">Join a room</p>
+            <h2>Have a code?</h2>
+            <p>Enter the six-character room code from the host.</p>
+            <form id="join-form">
+              <label for="room-code">Room code</label>
+              <div class="join-row"><input id="room-code" maxlength="6" placeholder="ABC123" autocomplete="off" /><button class="button secondary">Join</button></div>
+            </form>
+          </article>
+        </div>
+        <p class="message" id="message" role="status"></p>
+      </section>
+
+      <section class="game hidden" id="game" aria-live="polite">
+        <div class="game-top"><a class="brand" href="../../">WEB <span>GAMES</span></a><button id="room-label" class="room-code-button"></button><button id="leave-room" class="text-button">Leave room</button></div>
+        <div class="game-layout">
+          <section class="chat" aria-labelledby="chat-title">
+            <h2 id="chat-title">Room chat</h2>
+            <div class="chat-messages" id="chat-messages" aria-live="polite"></div>
+            <form class="chat-form" id="chat-form">
+              <input id="chat-input" maxlength="255" placeholder="Type a message…" autocomplete="off" />
+              <button class="button secondary">Send</button>
+            </form>
+          </section>
+          <div class="play-area">
+            <div class="players"><span id="p1-player">● P1</span><strong id="game-status">Loading room…</strong><span id="p2-player">● P2</span></div>
+            <div class="board" id="board" aria-label="Connect Four board"></div>
+            <div class="game-actions">
+              <div class="host-controls hidden" id="host-controls">
+                <button class="text-button" id="new-round">New round</button>
+                <button class="text-button" id="kick-player">Kick player</button>
+                <button class="text-button danger" id="disband-room">Disband room</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

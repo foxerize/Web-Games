@@ -3,51 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="A two-player Connect Four game." />
-    <title>Connect Four Rooms</title>
+    <meta name="description" content="A small collection of web games." />
+    <title>Web Games</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="app-shell">
-      <a class="brand" href="/">CONNECT <span>FOUR</span></a>
+      <a class="brand" href="/">WEB <span>GAMES</span></a>
       <section class="lobby" id="lobby" aria-labelledby="title">
-        <p class="eyebrow">Two players · one room</p>
-        <h1 id="title">Play together,<br /><em>anywhere.</em></h1>
-        <p>Create a private room and send its six-letter code to a friend.</p>
-        <button class="button" id="create-room">Create a room <span>→</span></button>
-        <form id="join-form">
-          <label for="room-code">Have a code?</label>
-          <div class="join-row"><input id="room-code" maxlength="6" placeholder="ABC123" autocomplete="off" /><button class="button secondary">Join</button></div>
-        </form>
+        <p class="eyebrow">Browser games · lightweight multiplayer</p>
+        <h1 id="title">Pick a game,<br /><em>start fast.</em></h1>
+        <p>A small hub for games that run directly in the browser.</p>
+        <div class="game-grid">
+          <article class="game-card featured">
+            <p class="card-kicker">Multiplayer · 2 players</p>
+            <h2>Connect Four</h2>
+            <p>Create a private room, invite a friend, and play live with chat.</p>
+            <a class="button" href="games/connect-four/">Open game <span>→</span></a>
+          </article>
+          <article class="game-card featured">
+            <p class="card-kicker">Multiplayer · 2 players</p>
+            <h2>Checkers</h2>
+            <p>Create a private room and play live checkers with the same room system.</p>
+            <a class="button" href="games/checkers/">Open game <span>→</span></a>
+          </article>
+          <article class="game-card">
+            <p class="card-kicker">Word puzzle · custom words</p>
+            <h2>Custom Wordle</h2>
+            <p>Play your existing custom Wordle build.</p>
+            <a class="button" href="https://foxerize.github.io/Custom-Wordle/">Open Wordle <span>→</span></a>
+            <a class="source-link" href="https://github.com/foxerize/Custom-Wordle">View source</a>
+          </article>
+        </div>
         <p class="message" id="message" role="status"></p>
       </section>
-
-      <section class="game hidden" id="game" aria-live="polite">
-        <div class="game-top"><button id="leave-room" class="text-button">← Leave room</button><span id="room-label"></span></div>
-        <div class="game-layout">
-          <section class="chat" aria-labelledby="chat-title">
-            <h2 id="chat-title">Room chat</h2>
-            <div class="chat-messages" id="chat-messages" aria-live="polite"></div>
-            <form class="chat-form" id="chat-form">
-              <input id="chat-input" maxlength="255" placeholder="Type a message…" autocomplete="off" />
-              <button class="button secondary">Send</button>
-            </form>
-          </section>
-          <div class="play-area">
-            <div class="players"><span id="p1-player">● P1</span><strong id="game-status">Loading room…</strong><span id="p2-player">● P2</span></div>
-            <div class="board" id="board" aria-label="Connect Four board"></div>
-            <div class="game-actions">
-              <button class="button secondary" id="copy-link">Copy invite link</button>
-              <div class="host-controls hidden" id="host-controls">
-                <button class="text-button" id="new-round">New round</button>
-                <button class="text-button" id="kick-player">Kick player</button>
-                <button class="text-button danger" id="disband-room">Disband room</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
     </main>
-    <script type="module" src="app.js"></script>
   </body>
 </html>
