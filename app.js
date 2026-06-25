@@ -22,8 +22,9 @@ const isExpired = roomData => roomData?.expiresAt && roomData.expiresAt <= Date.
 const emptyBoard = () => Array(6).fill(null).map(() => Array(7).fill(null));
 const normalizeBoard = board => Array.from({ length: 6 }, (_, r) => Array.from({ length: 7 }, (_, c) => board?.[r]?.[c] ?? null));
 const code = () => Array.from(crypto.getRandomValues(new Uint32Array(6)), n => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[n % 32]).join("");
-const playerColor = players => players?.red === uid ? "red" : players?.yellow === uid ? "yellow" : null;
-const isHost = roomData => roomData?.host === uid || (!roomData?.host && roomData?.players?.red === uid);
+const playerColor = players => players?.p1 === uid ? "p1" : players?.p2 === uid ? "p2" : null;
+const playerLabel = color => color === "p1" ? "P1" : "P2";
+const isHost = roomData => roomData?.host === uid || (!roomData?.host && roomData?.players?.p1 === uid);
 const chatKey = id => `connect-four-chat:${id}`;
 const chatId = item => item.id || `${item.createdAt || 0}:${item.uid || ""}:${item.text || ""}`;
 const readLocalChat = id => {
@@ -49,11 +50,11 @@ try {
     const id = requestedId.toUpperCase(); const roomRef = ref(db, `rooms/${id}`);
     const result = await runTransaction(roomRef, current => {
       if (isExpired(current)) current = null;
-      if (!current && create) return { board: emptyBoard(), turn: "red", status: "waiting", players: { red: uid }, host: uid, createdAt: Date.now(), expiresAt: expiresAt() };
+      if (!current && create) return { board: emptyBoard(), turn: "p1", status: "waiting", players: { p1: uid }, host: uid, createdAt: Date.now(), expiresAt: expiresAt() };
       if (!current || playerColor(current.players)) return current;
-      if (current.kickedYellow === uid) return;
-      if (current.players?.yellow || current.status === "finished") return;
-      return { ...current, host: current.host || current.players.red, status: "playing", players: { ...current.players, yellow: uid }, expiresAt: expiresAt() };
+      if (current.kickedP2 === uid) return;
+      if (current.players?.p2 || current.status === "finished") return;
+      return { ...current, host: current.host || current.players.p1, status: "playing", players: { ...current.players, p2: uid }, expiresAt: expiresAt() };
     });
     if (!result.committed || !result.snapshot.val()) throw new Error("That room is full, expired, or does not exist.");
     roomId = id; history.replaceState(null, "", `?room=${id}`); lobby.classList.add("hidden"); game.classList.remove("hidden");
@@ -69,7 +70,7 @@ try {
     current.board[row][column] = color;
     if (winner(current.board, row, column, color)) { current.status = "finished"; current.winner = color; }
     else if (current.board.flat().every(Boolean)) current.status = "finished";
-    else current.turn = color === "red" ? "yellow" : "red";
+    else current.turn = color === "p1" ? "p2" : "p1";
     current.expiresAt = expiresAt();
     return current;
   });
@@ -77,11 +78,11 @@ try {
     const mine = playerColor(room.players); document.querySelector("#room-label").textContent = `ROOM ${roomId}`;
     const currentBoard = normalizeBoard(room.board);
     const host = isHost(room);
-    document.querySelector("#red-player").textContent = `● Red${room.host === room.players?.red || !room.host ? " host" : ""}${mine === "red" ? " (you)" : ""}`;
-    document.querySelector("#yellow-player").textContent = `● Yellow${mine === "yellow" ? " (you)" : ""}`;
-    document.querySelector("#game-status").textContent = room.status === "waiting" ? "Waiting for opponent…" : room.status === "finished" ? (room.winner ? `${room.winner[0].toUpperCase()+room.winner.slice(1)} wins!` : "It’s a draw!") : room.turn === mine ? "Your turn" : "Opponent’s turn";
+    document.querySelector("#p1-player").textContent = `● P1${room.host === room.players?.p1 || !room.host ? " host" : ""}${mine === "p1" ? " (you)" : ""}`;
+    document.querySelector("#p2-player").textContent = `● P2${mine === "p2" ? " (you)" : ""}`;
+    document.querySelector("#game-status").textContent = room.status === "waiting" ? "Waiting for opponent…" : room.status === "finished" ? (room.winner ? `${playerLabel(room.winner)} wins!` : "It’s a draw!") : room.turn === mine ? "Your turn" : "Opponent’s turn";
     hostControls.classList.toggle("hidden", !host);
-    kickPlayerButton.disabled = !room.players?.yellow;
+    kickPlayerButton.disabled = !room.players?.p2;
     boardEl.replaceChildren(...currentBoard.flatMap((row, r) => row.map((value, c) => { const b = document.createElement("button"); b.className = `cell ${value || ""}`; b.disabled = room.status !== "playing" || room.turn !== mine || value !== null; b.setAttribute("aria-label", `Column ${c + 1}, row ${r + 1}`); b.onclick = () => move(c); return b; })));
     renderChat(mine);
   }
@@ -91,13 +92,10 @@ try {
     writeLocalChat(roomId, messages);
     chatMessages.replaceChildren(...messages.map(item => {
       const row = document.createElement("p");
-      row.className = `chat-message ${item.uid === uid ? "mine" : ""}`;
-      const author = document.createElement("span");
-      author.className = `chat-author ${item.color || ""}`;
-      author.textContent = item.uid === uid ? "You" : (item.color === "red" ? "Red" : "Yellow");
+      row.className = `chat-message ${item.uid === uid ? "mine" : "theirs"} ${item.color || ""}`;
       const text = document.createElement("span");
       text.textContent = item.text;
-      row.append(author, text);
+      row.append(text);
       return row;
     }));
     chatInput.disabled = !mine;
@@ -115,7 +113,7 @@ try {
   });
   const hostTransaction = action => roomId && runTransaction(ref(db, `rooms/${roomId}`), current => {
     if (!current || isExpired(current) || !isHost(current)) return current;
-    if (!current.host && current.players?.red) current.host = current.players.red;
+    if (!current.host && current.players?.p1) current.host = current.players.p1;
     return action(current);
   });
   const leave = text => { unsubscribe?.(); history.replaceState(null, "", location.pathname); game.classList.add("hidden"); lobby.classList.remove("hidden"); hostControls.classList.add("hidden"); roomId = null; if (text) message.textContent = text; };
@@ -124,8 +122,8 @@ try {
   document.querySelector("#leave-room").onclick = leave;
   document.querySelector("#copy-link").onclick = async () => { await navigator.clipboard.writeText(location.href); document.querySelector("#copy-link").textContent = "Invite link copied"; };
   chatForm.onsubmit = e => { e.preventDefault(); const text = chatInput.value; chatInput.value = ""; sendChat(text); };
-  document.querySelector("#new-round").onclick = () => hostTransaction(current => ({ ...current, board: emptyBoard(), turn: "red", status: current.players?.yellow ? "playing" : "waiting", winner: null, expiresAt: expiresAt() }));
-  document.querySelector("#kick-player").onclick = () => hostTransaction(current => ({ ...current, board: emptyBoard(), turn: "red", status: "waiting", winner: null, kickedYellow: current.players?.yellow || null, players: { red: current.players.red }, expiresAt: expiresAt() }));
+  document.querySelector("#new-round").onclick = () => hostTransaction(current => ({ ...current, board: emptyBoard(), turn: "p1", status: current.players?.p2 ? "playing" : "waiting", winner: null, expiresAt: expiresAt() }));
+  document.querySelector("#kick-player").onclick = () => hostTransaction(current => ({ ...current, board: emptyBoard(), turn: "p1", status: "waiting", winner: null, kickedP2: current.players?.p2 || null, players: { p1: current.players.p1 }, expiresAt: expiresAt() }));
   document.querySelector("#disband-room").onclick = () => { if (roomId && confirm("Disband this room for everyone?")) set(ref(db, `rooms/${roomId}`), null); };
   const requestedRoom = new URLSearchParams(location.search).get("room"); if (requestedRoom) openRoom(requestedRoom, false).catch(e => message.textContent = e.message);
 } catch (error) { message.textContent = error.message || "Firebase could not start."; }

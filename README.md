@@ -10,7 +10,7 @@ A two-player Connect Four game: GitHub Pages hosts the client; Firebase Realtime
 4. In the Realtime Database **Rules** tab, replace the default rules with the contents of [database.rules.json](database.rules.json), then publish them.
 5. Push to `main`. In GitHub **Settings → Pages**, select **GitHub Actions** as the deployment source.
 
-After deployment, create a room and use **Copy invite link**. The second player opens the link and automatically joins as Yellow.
+After deployment, create a room and use **Copy invite link**. The second player opens the link and automatically joins as P2.
 
 ## Security scope
 
