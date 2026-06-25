@@ -3,7 +3,7 @@
     "rooms": {
       "$roomId": {
         ".read": "auth != null",
-        ".write": "auth != null && ((!data.exists() && newData.child('players/red').val() === auth.uid) || data.child('players/red').val() === auth.uid || data.child('players/yellow').val() === auth.uid || (!data.child('players/yellow').exists() && newData.child('players/yellow').val() === auth.uid && newData.child('players/red').val() === data.child('players/red').val()))"
+        ".write": "auth != null && ((!data.exists() && newData.child('players/red').val() === auth.uid) || (data.child('expiresAt').val() <= now) || data.child('players/red').val() === auth.uid || data.child('players/yellow').val() === auth.uid || (!data.child('players/yellow').exists() && newData.child('players/yellow').val() === auth.uid && newData.child('players/red').val() === data.child('players/red').val()))"
       }
     }
   }

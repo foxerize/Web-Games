@@ -8,6 +8,9 @@ const lobby = document.querySelector("#lobby");
 const game = document.querySelector("#game");
 const message = document.querySelector("#message");
 let uid, roomId, room, unsubscribe;
+const ROOM_TTL_MS = 2 * 60 * 60 * 1000;
+const expiresAt = () => Date.now() + ROOM_TTL_MS;
+const isExpired = roomData => roomData?.expiresAt && roomData.expiresAt <= Date.now();
 const emptyBoard = () => Array(6).fill(null).map(() => Array(7).fill(null));
 const normalizeBoard = board => Array.from({ length: 6 }, (_, r) => Array.from({ length: 7 }, (_, c) => board?.[r]?.[c] ?? null));
 const code = () => Array.from(crypto.getRandomValues(new Uint32Array(6)), n => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[n % 32]).join("");
@@ -23,18 +26,20 @@ try {
   const openRoom = async (requestedId, create) => {
     const id = requestedId.toUpperCase(); const roomRef = ref(db, `rooms/${id}`);
     const result = await runTransaction(roomRef, current => {
-      if (!current && create) return { board: emptyBoard(), turn: "red", status: "waiting", players: { red: uid }, createdAt: Date.now() };
+      if (isExpired(current)) current = null;
+      if (!current && create) return { board: emptyBoard(), turn: "red", status: "waiting", players: { red: uid }, createdAt: Date.now(), expiresAt: expiresAt() };
       if (!current || playerColor(current.players)) return current;
       if (current.players?.yellow || current.status === "finished") return;
-      return { ...current, status: "playing", players: { ...current.players, yellow: uid } };
+      return { ...current, status: "playing", players: { ...current.players, yellow: uid }, expiresAt: expiresAt() };
     });
-    if (!result.committed) throw new Error("That room is full or does not exist.");
+    if (!result.committed || !result.snapshot.val()) throw new Error("That room is full, expired, or does not exist.");
     roomId = id; history.replaceState(null, "", `?room=${id}`); lobby.classList.add("hidden"); game.classList.remove("hidden");
-    unsubscribe?.(); unsubscribe = onValue(roomRef, snapshot => { room = snapshot.val(); if (!room) return leave(); render(); });
+    unsubscribe?.(); unsubscribe = onValue(roomRef, snapshot => { room = snapshot.val(); if (!room) return leave(); if (isExpired(room)) { set(roomRef, null); return leave(); } render(); });
   };
 
   const winner = (b, r, c, color) => [[0,1],[1,0],[1,1],[1,-1]].some(([dr,dc]) => [-3,-2,-1,0].some(n => [0,1,2,3].every(i => b[r+(n+i)*dr]?.[c+(n+i)*dc] === color)));
   const move = column => runTransaction(ref(db, `rooms/${roomId}`), current => {
+    if (isExpired(current)) return null;
     const color = playerColor(current?.players); if (!color || current.status !== "playing" || current.turn !== color) return;
     current.board = normalizeBoard(current.board);
     const row = [...current.board].map(x => x[column]).lastIndexOf(null); if (row < 0) return;
@@ -42,6 +47,7 @@ try {
     if (winner(current.board, row, column, color)) { current.status = "finished"; current.winner = color; }
     else if (current.board.flat().every(Boolean)) current.status = "finished";
     else current.turn = color === "red" ? "yellow" : "red";
+    current.expiresAt = expiresAt();
     return current;
   });
   function render() {
@@ -57,6 +63,6 @@ try {
   document.querySelector("#join-form").onsubmit = e => { e.preventDefault(); const c = document.querySelector("#room-code").value.replace(/[^A-Z0-9]/gi, ""); if (c.length !== 6) return message.textContent = "Enter the six-letter room code."; openRoom(c, false).catch(err => message.textContent = err.message); };
   document.querySelector("#leave-room").onclick = leave;
   document.querySelector("#copy-link").onclick = async () => { await navigator.clipboard.writeText(location.href); document.querySelector("#copy-link").textContent = "Invite link copied"; };
-  document.querySelector("#new-round").onclick = () => roomId && set(ref(db, `rooms/${roomId}`), { ...room, board: emptyBoard(), turn: "red", status: "playing", winner: null });
+  document.querySelector("#new-round").onclick = () => roomId && set(ref(db, `rooms/${roomId}`), { ...room, board: emptyBoard(), turn: "red", status: "playing", winner: null, expiresAt: expiresAt() });
   const requestedRoom = new URLSearchParams(location.search).get("room"); if (requestedRoom) openRoom(requestedRoom, false).catch(e => message.textContent = e.message);
 } catch (error) { message.textContent = error.message || "Firebase could not start."; }
